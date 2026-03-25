@@ -46,46 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
   navButtons.procedimentos.addEventListener('click', () => showPage('procedimentos'));
   navButtons.resumo.addEventListener('click', () => showPage('resumo'));
 
-  // Profissionais
-  const profIdInput = document.getElementById('prof-id');
-  const profNomeInput = document.getElementById('prof-nome');
-  const profCrmInput = document.getElementById('prof-crm');
-  const profSalvarBtn = document.getElementById('prof-salvar');
+  // Profissionais fixos
   const tableProf = document.getElementById('table-profissionais').querySelector('tbody');
-  let editingProf = false;
-
-  profSalvarBtn.addEventListener('click', async () => {
-    const nome = profNomeInput.value.trim();
-    const crm = profCrmInput.value.trim();
-
-    if (!nome || !crm) {
-      alert('Preencha nome e CRM do profissional.');
-      return;
-    }
-
-    if (editingProf) {
-      await fetch(`/api/professionals/${profIdInput.value}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, crm })
-      });
-    } else {
-      await fetch('/api/professionals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, crm })
-      });
-    }
-
-    profIdInput.value = '';
-    profNomeInput.value = '';
-    profCrmInput.value = '';
-    editingProf = false;
-    profSalvarBtn.textContent = 'Salvar Profissional';
-
-    loadProfessionals();
-    loadProfessionalsDropdown();
-  });
 
   async function loadProfessionals() {
     const professionals = await (await fetch('/api/professionals')).json();
@@ -95,24 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${prof.nome}</td>
-        <td>${prof.crm}</td>
-        <td><button class="edit-prof" data-id="${prof.id}">Editar</button></td>
+        <td>Fixo</td>
       `;
       tableProf.appendChild(tr);
-    });
-
-    document.querySelectorAll('.edit-prof').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const professionalsList = await (await fetch('/api/professionals')).json();
-        const prof = professionalsList.find((p) => p.id === Number(btn.dataset.id));
-        if (!prof) return;
-
-        profIdInput.value = prof.id;
-        profNomeInput.value = prof.nome;
-        profCrmInput.value = prof.crm;
-        editingProf = true;
-        profSalvarBtn.textContent = 'Atualizar Profissional';
-      });
     });
   }
 
@@ -278,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${proc.rateioDescricao || '-'}</td>
         <td>${formatCurrency(proc.valorAgnes)}</td>
         <td>${formatCurrency(proc.valorNeisy)}</td>
+        <td>${proc.impresso ? 'Impresso' : 'Pendente'}</td>
         <td>${new Date(proc.data).toLocaleString('pt-BR')}</td>
       `;
       table.appendChild(tr);
@@ -301,21 +249,37 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${formatCurrency(rec.valor)}</td>
         <td>${rec.status}</td>
         <td>
-          ${rec.status !== 'Emitido' ? `<button class="emit-rec" data-id="${rec.id}">Emitir</button>` : ''}
+          <button class="print-rec" data-id="${rec.id}">Imprimir</button>
           <button class="pdf-rec" data-id="${rec.id}">PDF</button>
         </td>
       `;
       table.appendChild(tr);
     });
 
-    document.querySelectorAll('.emit-rec').forEach((btn) => {
+    document.querySelectorAll('.print-rec').forEach((btn) => {
       btn.addEventListener('click', async () => {
+        const receiptId = btn.dataset.id;
+        const frame = document.createElement('iframe');
+        frame.style.position = 'fixed';
+        frame.style.width = '0';
+        frame.style.height = '0';
+        frame.style.border = '0';
+        frame.src = `/api/receipts/${receiptId}/pdf`;
+        document.body.appendChild(frame);
+
+        frame.onload = () => {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+          setTimeout(() => frame.remove(), 1000);
+        };
+
         await fetch(`/api/receipts/${btn.dataset.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'Emitido' })
+          body: JSON.stringify({ status: 'Impresso' })
         });
         loadReceipts();
+        loadProcedures();
       });
     });
 

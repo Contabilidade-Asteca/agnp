@@ -9,19 +9,70 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const DATA_FILE = path.join(__dirname, 'data.json');
+const DEFAULT_PROFESSIONALS = [
+  { id: 1, nome: 'Dra.Agnes Opuchkevitch' },
+  { id: 2, nome: 'Dra.Neisy Stefli' }
+];
+
+function ensureDataShape(rawData) {
+  const data = rawData || {};
+  data.nextIds = data.nextIds || {};
+  data.nextIds.professional = Math.max(Number(data.nextIds.professional) || 3, 3);
+  data.nextIds.client = Number(data.nextIds.client) || 1;
+  data.nextIds.procedure = Number(data.nextIds.procedure) || 1;
+  data.nextIds.receipt = Number(data.nextIds.receipt) || 1;
+
+  const loadedProfessionals = Array.isArray(data.professionals) ? data.professionals : [];
+  const professionalMap = new Map();
+  loadedProfessionals.forEach((professional) => {
+    if (!professional || !professional.nome) return;
+    professionalMap.set(professional.nome.toLowerCase(), {
+      id: professional.id,
+      nome: professional.nome
+    });
+  });
+
+  DEFAULT_PROFESSIONALS.forEach((professional) => {
+    if (!professionalMap.has(professional.nome.toLowerCase())) {
+      professionalMap.set(professional.nome.toLowerCase(), professional);
+    }
+  });
+
+  const normalizedProfessionals = Array.from(professionalMap.values())
+    .filter((professional) => DEFAULT_PROFESSIONALS.some((fixed) => fixed.nome.toLowerCase() === professional.nome.toLowerCase()))
+    .sort((a, b) => a.id - b.id)
+    .map((professional) => ({ id: professional.id, nome: professional.nome }));
+
+  data.professionals = normalizedProfessionals;
+  data.clients = Array.isArray(data.clients) ? data.clients : [];
+  data.procedures = Array.isArray(data.procedures)
+    ? data.procedures.map((procedure) => ({
+      ...procedure,
+      impresso: Boolean(procedure.impresso)
+    }))
+    : [];
+  data.receipts = Array.isArray(data.receipts) ? data.receipts : [];
+
+  return data;
+}
 
 function readData() {
   try {
     const data = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data || '{}');
+    const parsed = JSON.parse(data || '{}');
+    const normalized = ensureDataShape(parsed);
+    writeData(normalized);
+    return normalized;
   } catch (err) {
-    return {
+    const initial = ensureDataShape({
       nextIds: { professional: 1, client: 1, procedure: 1, receipt: 1 },
       professionals: [],
       clients: [],
       procedures: [],
       receipts: []
-    };
+    });
+    writeData(initial);
+    return initial;
   }
 }
 
@@ -64,23 +115,11 @@ app.get('/api/professionals', (req, res) => {
 });
 
 app.post('/api/professionals', (req, res) => {
-  const data = readData();
-  const id = data.nextIds.professional++;
-  const professional = { id, nome: req.body.nome, crm: req.body.crm };
-  data.professionals.push(professional);
-  writeData(data);
-  res.json(professional);
+  res.status(405).json({ error: 'Profissionais fixos não podem ser alterados.' });
 });
 
 app.put('/api/professionals/:id', (req, res) => {
-  const data = readData();
-  const id = parseInt(req.params.id, 10);
-  const prof = data.professionals.find((p) => p.id === id);
-  if (!prof) return res.status(404).json({ error: 'Profissional não encontrado' });
-  prof.nome = req.body.nome;
-  prof.crm = req.body.crm;
-  writeData(data);
-  res.json(prof);
+  res.status(405).json({ error: 'Profissionais fixos não podem ser alterados.' });
 });
 
 app.get('/api/clients', (req, res) => {
@@ -108,17 +147,29 @@ app.put('/api/clients/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
   const cli = data.clients.find((c) => c.id === id);
   if (!cli) return res.status(404).json({ error: 'Cliente não encontrado' });
-  cli.nome = req.body.nome;
-  cli.cpf = req.body.cpf;
-  cli.telefone = req.body.telefone;
-  cli.nascimento = req.body.nascimento;
+  cli.nome = req.body.nome || cli.nome;
+  cli.cpf = req.body.cpf || cli.cpf;
+  cli.telefone = req.body.telefone || cli.telefone;
+  cli.nascimento = req.body.nascimento || cli.nascimento;
   writeData(data);
   res.json(cli);
 });
 
 app.get('/api/procedures', (req, res) => {
   const data = readData();
-  res.json(data.procedures.map((procedure) => enrichProcedure(procedure, data)));
+  const receiptsByProcedure = new Map();
+  data.receipts.forEach((receipt) => {
+    const statusList = receiptsByProcedure.get(receipt.procedureId) || [];
+    statusList.push(receipt.status);
+    receiptsByProcedure.set(receipt.procedureId, statusList);
+  });
+
+  const enriched = data.procedures.map((procedure) => {
+    const statuses = receiptsByProcedure.get(procedure.id) || [];
+    const impresso = statuses.length > 0 && statuses.every((status) => status === 'Impresso');
+    return enrichProcedure({ ...procedure, impresso }, data);
+  });
+  res.json(enriched);
 });
 
 app.post('/api/procedures', (req, res) => {
@@ -220,6 +271,10 @@ app.put('/api/receipts/:id', (req, res) => {
   const rec = data.receipts.find((r) => r.id === id);
   if (!rec) return res.status(404).json({ error: 'Recibo não encontrado' });
   rec.status = req.body.status || rec.status;
+  if (rec.status === 'Impresso') {
+    const procedure = data.procedures.find((proc) => proc.id === rec.procedureId);
+    if (procedure) procedure.impresso = true;
+  }
   writeData(data);
   res.json(rec);
 });
