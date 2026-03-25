@@ -1,152 +1,141 @@
-/* Reset and base */
 * {
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
   margin: 0;
-  background-color: #f0f0f3;
-  color: #333;
+  background: #f3f4f8;
+  color: #23232b;
 }
 
 header {
-  background-color: #f7f7f7;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e6e7ef;
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 header .title {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 10px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 12px;
 }
 
 nav {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 nav button {
-  background-color: transparent;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 14px;
+  border: 1px solid #d5d8e7;
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #304086;
+  font-weight: 600;
   cursor: pointer;
-  color: #007aff;
 }
 
 nav button.active,
 nav button:hover {
-  background-color: #e0e0e0;
+  background: #304086;
+  border-color: #304086;
+  color: #fff;
 }
 
 main {
   padding: 20px;
 }
 
-.page {
-  display: none;
+.page { display: none; }
+.page.active { display: block; }
+
+.grid-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
 }
 
-.page.active {
-  display: block;
+.card {
+  background: #fff;
+  border: 1px solid #eceef6;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(22, 34, 66, 0.06);
+  padding: 14px;
+  margin-bottom: 16px;
 }
+
+h2 { margin-top: 0; }
+h3 { margin-top: 0; color: #304086; }
 
 .form-container {
-  background-color: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  align-items: center;
+  margin-bottom: 14px;
 }
 
 .form-container input,
 .form-container select {
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  flex: 1 1 150px;
+  border: 1px solid #d6d9e8;
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 42px;
+  flex: 1 1 180px;
 }
 
-.form-container button {
-  background-color: #007aff;
+.form-container input[readonly] {
+  background: #f8f9fd;
+  color: #59638a;
+  font-weight: 600;
+}
+
+.form-container button,
+td button {
   border: none;
+  border-radius: 8px;
+  background: #304086;
   color: #fff;
-  padding: 8px 16px;
-  border-radius: 6px;
+  font-weight: 600;
+  padding: 9px 12px;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
 
-.form-container button:hover {
-  background-color: #005ecb;
+.form-container button:hover,
+td button:hover {
+  background: #253266;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  font-size: 0.93rem;
 }
 
-thead {
-  background-color: #f7f7f7;
+thead th {
+  background: #f5f7ff;
 }
 
 th, td {
-  padding: 10px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
+  border: 1px solid #ebedf5;
+  padding: 8px;
+  vertical-align: top;
 }
 
-th {
-  font-weight: 600;
-}
-
-tbody tr:nth-child(even) {
-  background-color: #fafafa;
-}
-
-tbody tr:hover {
-  background-color: #f0f0f0;
-}
-
-td button {
-  background-color: #007aff;
-  border: none;
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-td button:hover {
-  background-color: #005ecb;
-}
-
-.resumo-container {
-  background-color: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.resumo-container ul {
+#resumo-lista {
   list-style: none;
-  padding: 0;
+  padding-left: 0;
 }
 
-.resumo-container li {
-  margin-bottom: 5px;
-  font-weight: 500;
+#resumo-lista li {
+  padding: 6px 0;
+  border-bottom: 1px dashed #d9dcee;
+}
+
+canvas {
+  max-height: 320px;
 }
