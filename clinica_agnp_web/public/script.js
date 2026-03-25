@@ -1,57 +1,70 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // navigation
   const pages = {
-    profissionais: document.getElementById('page-profissionais'),
-    clientes: document.getElementById('page-clientes'),
+    cadastros: document.getElementById('page-cadastros'),
     procedimentos: document.getElementById('page-procedimentos'),
-    recibos: document.getElementById('page-recibos'),
     resumo: document.getElementById('page-resumo')
   };
+
   const navButtons = {
-    profissionais: document.getElementById('nav-profissionais'),
-    clientes: document.getElementById('nav-clientes'),
+    cadastros: document.getElementById('nav-cadastros'),
     procedimentos: document.getElementById('nav-procedimentos'),
-    recibos: document.getElementById('nav-recibos'),
     resumo: document.getElementById('nav-resumo')
   };
+
+  let incomeChart;
+  let typesChart;
+
+  function formatCurrency(value) {
+    return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
   function showPage(name) {
-    Object.keys(pages).forEach(key => {
+    Object.keys(pages).forEach((key) => {
       pages[key].classList.toggle('active', key === name);
       navButtons[key].classList.toggle('active', key === name);
     });
-    if (name === 'profissionais') loadProfessionals();
-    if (name === 'clientes') loadClients();
+
+    if (name === 'cadastros') {
+      loadProfessionals();
+      loadClients();
+    }
+
     if (name === 'procedimentos') {
-      loadProcedures();
       loadClientsDropdown();
       loadProfessionalsDropdown();
+      loadProcedures();
+      loadReceipts();
+      updateRateioHint();
     }
-    if (name === 'recibos') loadReceipts();
-    if (name === 'resumo') loadSummary();
+
+    if (name === 'resumo') {
+      loadSummary();
+    }
   }
-  navButtons.profissionais.addEventListener('click', () => showPage('profissionais'));
-  navButtons.clientes.addEventListener('click', () => showPage('clientes'));
+
+  navButtons.cadastros.addEventListener('click', () => showPage('cadastros'));
   navButtons.procedimentos.addEventListener('click', () => showPage('procedimentos'));
-  navButtons.recibos.addEventListener('click', () => showPage('recibos'));
   navButtons.resumo.addEventListener('click', () => showPage('resumo'));
 
-  // load initial page
-  showPage('profissionais');
-
-  // Professional CRUD
+  // Profissionais
   const profIdInput = document.getElementById('prof-id');
   const profNomeInput = document.getElementById('prof-nome');
   const profCrmInput = document.getElementById('prof-crm');
   const profSalvarBtn = document.getElementById('prof-salvar');
   const tableProf = document.getElementById('table-profissionais').querySelector('tbody');
   let editingProf = false;
+
   profSalvarBtn.addEventListener('click', async () => {
     const nome = profNomeInput.value.trim();
     const crm = profCrmInput.value.trim();
-    if (!nome || !crm) { alert('Preencha todos os campos'); return; }
+
+    if (!nome || !crm) {
+      alert('Preencha nome e CRM do profissional.');
+      return;
+    }
+
     if (editingProf) {
-      const id = profIdInput.value;
-      await fetch(`/api/professionals/${id}`, {
+      await fetch(`/api/professionals/${profIdInput.value}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome, crm })
@@ -63,61 +76,59 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ nome, crm })
       });
     }
+
+    profIdInput.value = '';
     profNomeInput.value = '';
     profCrmInput.value = '';
-    profIdInput.value = '';
     editingProf = false;
-    profSalvarBtn.textContent = 'Salvar';
+    profSalvarBtn.textContent = 'Salvar Profissional';
+
     loadProfessionals();
     loadProfessionalsDropdown();
   });
 
   async function loadProfessionals() {
-    const res = await fetch('/api/professionals');
-    const professionals = await res.json();
+    const professionals = await (await fetch('/api/professionals')).json();
     tableProf.innerHTML = '';
-    professionals.forEach(prof => {
+
+    professionals.forEach((prof) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${prof.nome}</td>
         <td>${prof.crm}</td>
-        <td>
-          <button class="edit-prof" data-id="${prof.id}">Editar</button>
-        </td>
+        <td><button class="edit-prof" data-id="${prof.id}">Editar</button></td>
       `;
       tableProf.appendChild(tr);
     });
-    // attach listeners for edit
-    document.querySelectorAll('.edit-prof').forEach(btn => {
+
+    document.querySelectorAll('.edit-prof').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const res = await fetch('/api/professionals');
-        const professionals = await res.json();
-        const prof = professionals.find(p => p.id == id);
+        const professionalsList = await (await fetch('/api/professionals')).json();
+        const prof = professionalsList.find((p) => p.id === Number(btn.dataset.id));
+        if (!prof) return;
+
         profIdInput.value = prof.id;
         profNomeInput.value = prof.nome;
         profCrmInput.value = prof.crm;
         editingProf = true;
-        profSalvarBtn.textContent = 'Atualizar';
-        showPage('profissionais');
+        profSalvarBtn.textContent = 'Atualizar Profissional';
       });
     });
   }
 
   async function loadProfessionalsDropdown() {
     const select = document.getElementById('proc-profissional');
-    const res = await fetch('/api/professionals');
-    const professionals = await res.json();
-    select.innerHTML = '';
-    professionals.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.nome;
-      select.appendChild(opt);
+    const professionals = await (await fetch('/api/professionals')).json();
+    select.innerHTML = '<option value="">Selecione o profissional</option>';
+    professionals.forEach((prof) => {
+      const option = document.createElement('option');
+      option.value = prof.id;
+      option.textContent = prof.nome;
+      select.appendChild(option);
     });
   }
 
-  // Client CRUD
+  // Clientes
   const cliIdInput = document.getElementById('cli-id');
   const cliNomeInput = document.getElementById('cli-nome');
   const cliCpfInput = document.getElementById('cli-cpf');
@@ -126,15 +137,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const cliSalvarBtn = document.getElementById('cli-salvar');
   const tableCli = document.getElementById('table-clientes').querySelector('tbody');
   let editingCli = false;
+
   cliSalvarBtn.addEventListener('click', async () => {
     const nome = cliNomeInput.value.trim();
     const cpf = cliCpfInput.value.trim();
     const telefone = cliTelInput.value.trim();
     const nascimento = cliNascInput.value;
-    if (!nome || !cpf || !telefone || !nascimento) { alert('Preencha todos os campos'); return; }
+
+    if (!nome || !cpf || !telefone || !nascimento) {
+      alert('Preencha todos os dados do cliente.');
+      return;
+    }
+
     if (editingCli) {
-      const id = cliIdInput.value;
-      await fetch(`/api/clients/${id}`, {
+      await fetch(`/api/clients/${cliIdInput.value}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome, cpf, telefone, nascimento })
@@ -146,22 +162,24 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ nome, cpf, telefone, nascimento })
       });
     }
+
+    cliIdInput.value = '';
     cliNomeInput.value = '';
     cliCpfInput.value = '';
     cliTelInput.value = '';
     cliNascInput.value = '';
-    cliIdInput.value = '';
     editingCli = false;
-    cliSalvarBtn.textContent = 'Salvar';
+    cliSalvarBtn.textContent = 'Salvar Cliente';
+
     loadClients();
     loadClientsDropdown();
   });
 
   async function loadClients() {
-    const res = await fetch('/api/clients');
-    const clients = await res.json();
+    const clients = await (await fetch('/api/clients')).json();
     tableCli.innerHTML = '';
-    clients.forEach(cli => {
+
+    clients.forEach((cli) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${cli.nome}</td>
@@ -172,117 +190,127 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       tableCli.appendChild(tr);
     });
-    document.querySelectorAll('.edit-cli').forEach(btn => {
+
+    document.querySelectorAll('.edit-cli').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const res = await fetch('/api/clients');
-        const clients = await res.json();
-        const cli = clients.find(c => c.id == id);
+        const clientsList = await (await fetch('/api/clients')).json();
+        const cli = clientsList.find((c) => c.id === Number(btn.dataset.id));
+        if (!cli) return;
+
         cliIdInput.value = cli.id;
         cliNomeInput.value = cli.nome;
         cliCpfInput.value = cli.cpf;
         cliTelInput.value = cli.telefone;
         cliNascInput.value = cli.nascimento;
         editingCli = true;
-        cliSalvarBtn.textContent = 'Atualizar';
-        showPage('clientes');
+        cliSalvarBtn.textContent = 'Atualizar Cliente';
       });
     });
   }
 
   async function loadClientsDropdown() {
     const select = document.getElementById('proc-cliente');
-    const res = await fetch('/api/clients');
-    const clients = await res.json();
-    select.innerHTML = '';
-    clients.forEach(cli => {
-      const opt = document.createElement('option');
-      opt.value = cli.id;
-      opt.textContent = cli.nome;
-      select.appendChild(opt);
+    const clients = await (await fetch('/api/clients')).json();
+    select.innerHTML = '<option value="">Selecione o cliente</option>';
+
+    clients.forEach((cli) => {
+      const option = document.createElement('option');
+      option.value = cli.id;
+      option.textContent = cli.nome;
+      select.appendChild(option);
     });
   }
 
-  // Procedure operations
-  const procSalvarBtn = document.getElementById('proc-salvar');
-  procSalvarBtn.addEventListener('click', async () => {
-    const tipo = document.getElementById('proc-tipo').value;
-    const clienteId = parseInt(document.getElementById('proc-cliente').value);
-    const profissionalId = parseInt(document.getElementById('proc-profissional').value);
+  // Procedimentos
+  const procTipoInput = document.getElementById('proc-tipo');
+  const procRateioInput = document.getElementById('proc-rateio');
+
+  function updateRateioHint() {
+    if (procTipoInput.value === 'MAQUINA') {
+      procRateioInput.value = '50% Agnes / 50% Neisy (2 recibos)';
+    } else {
+      procRateioInput.value = '1ª parcela 100% Neisy + 2ª parcela 50/50 (1 recibo Neisy)';
+    }
+  }
+
+  procTipoInput.addEventListener('change', updateRateioHint);
+
+  document.getElementById('proc-salvar').addEventListener('click', async () => {
+    const tipo = procTipoInput.value;
+    const clienteId = Number(document.getElementById('proc-cliente').value);
+    const profissionalId = Number(document.getElementById('proc-profissional').value);
     const procedimento = document.getElementById('proc-nome').value.trim();
-    const valorStr = document.getElementById('proc-valor').value;
-    const valor = parseFloat(valorStr);
-    if (!tipo || !clienteId || !profissionalId || !procedimento || isNaN(valor)) {
-      alert('Preencha todos os campos');
+    const valor = Number(document.getElementById('proc-valor').value);
+
+    if (!tipo || !clienteId || !profissionalId || !procedimento || Number.isNaN(valor) || valor <= 0) {
+      alert('Preencha todos os campos do procedimento corretamente.');
       return;
     }
+
     await fetch('/api/procedures', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tipo, clienteId, profissionalId, procedimento, valor })
     });
+
     document.getElementById('proc-nome').value = '';
     document.getElementById('proc-valor').value = '';
+
     loadProcedures();
     loadReceipts();
     loadSummary();
   });
 
   async function loadProcedures() {
-    const res = await fetch('/api/procedures');
-    const procedures = await res.json();
+    const procedures = await (await fetch('/api/procedures')).json();
     const table = document.getElementById('table-procedimentos').querySelector('tbody');
     table.innerHTML = '';
-    for (const proc of procedures) {
-      // look up names
-      const clientRes = await fetch('/api/clients');
-      const clientsList = await clientRes.json();
-      const client = clientsList.find(c => c.id === proc.clienteId);
-      const profRes = await fetch('/api/professionals');
-      const profsList = await profRes.json();
-      const prof = profsList.find(p => p.id === proc.profissionalId);
+
+    procedures.forEach((proc) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${proc.id}</td>
         <td>${proc.tipo}</td>
-        <td>${client ? client.nome : ''}</td>
+        <td>${proc.clientName}</td>
+        <td>${proc.professionalName}</td>
         <td>${proc.procedimento}</td>
-        <td>${proc.valor.toFixed(2)}</td>
-        <td>${proc.valorAgnes.toFixed(2)}</td>
-        <td>${proc.valorNeisy.toFixed(2)}</td>
-        <td>${new Date(proc.data).toLocaleString()}</td>
+        <td>${formatCurrency(proc.valor)}</td>
+        <td>${proc.rateioDescricao || '-'}</td>
+        <td>${formatCurrency(proc.valorAgnes)}</td>
+        <td>${formatCurrency(proc.valorNeisy)}</td>
+        <td>${new Date(proc.data).toLocaleString('pt-BR')}</td>
       `;
       table.appendChild(tr);
-    }
+    });
   }
 
-  // Receipts operations
+  // Recibos
   async function loadReceipts() {
-    const res = await fetch('/api/receipts');
-    const receipts = await res.json();
+    const receipts = await (await fetch('/api/receipts')).json();
     const table = document.getElementById('table-recibos').querySelector('tbody');
     table.innerHTML = '';
-    receipts.forEach(rec => {
+
+    receipts.forEach((rec) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${rec.id}</td>
         <td>${rec.procedureName}</td>
         <td>${rec.clientName}</td>
         <td>${rec.professionalName}</td>
-        <td>${rec.valor.toFixed(2)}</td>
-        <td>${rec.parcela ? rec.parcela : '-'}</td>
+        <td>${rec.parcela || 'Única'}</td>
+        <td>${formatCurrency(rec.valor)}</td>
         <td>${rec.status}</td>
         <td>
           ${rec.status !== 'Emitido' ? `<button class="emit-rec" data-id="${rec.id}">Emitir</button>` : ''}
+          <button class="pdf-rec" data-id="${rec.id}">PDF</button>
         </td>
       `;
       table.appendChild(tr);
     });
-    // attach emit actions
-    document.querySelectorAll('.emit-rec').forEach(btn => {
+
+    document.querySelectorAll('.emit-rec').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        await fetch(`/api/receipts/${id}`, {
+        await fetch(`/api/receipts/${btn.dataset.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'Emitido' })
@@ -290,19 +318,75 @@ document.addEventListener('DOMContentLoaded', () => {
         loadReceipts();
       });
     });
-  }
 
-  // Summary
-  async function loadSummary() {
-    const res = await fetch('/api/summary');
-    const summary = await res.json();
-    document.getElementById('resumo-total').textContent = summary.total.toFixed(2);
-    const ul = document.getElementById('resumo-lista');
-    ul.innerHTML = '';
-    Object.keys(summary.income).forEach(prof => {
-      const li = document.createElement('li');
-      li.textContent = `${prof}: ${summary.income[prof].toFixed(2)}`;
-      ul.appendChild(li);
+    document.querySelectorAll('.pdf-rec').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        window.open(`/api/receipts/${btn.dataset.id}/pdf`, '_blank');
+      });
     });
   }
+
+  // Resumo + gráficos
+  async function loadSummary() {
+    const summary = await (await fetch('/api/summary')).json();
+
+    document.getElementById('resumo-total').textContent = formatCurrency(summary.total);
+    const resumoLista = document.getElementById('resumo-lista');
+    resumoLista.innerHTML = '';
+
+    Object.entries(summary.income).forEach(([name, value]) => {
+      const li = document.createElement('li');
+      li.textContent = `${name}: ${formatCurrency(value)}`;
+      resumoLista.appendChild(li);
+    });
+
+    renderIncomeChart(summary.income);
+    renderTypesChart(summary.proceduresByType);
+  }
+
+  function renderIncomeChart(income) {
+    const ctx = document.getElementById('chart-income');
+    if (incomeChart) incomeChart.destroy();
+
+    incomeChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(income),
+        datasets: [{
+          label: 'Receita por Profissional (R$)',
+          data: Object.values(income),
+          backgroundColor: ['#3f51b5', '#009688']
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  function renderTypesChart(types) {
+    const ctx = document.getElementById('chart-types');
+    if (typesChart) typesChart.destroy();
+
+    typesChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Processo Máquina', 'Atendimentos Neisy'],
+        datasets: [{
+          data: [types.MAQUINA || 0, types.NEISY || 0],
+          backgroundColor: ['#ff9800', '#8e24aa']
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' },
+          title: { display: true, text: 'Distribuição da Receita por Tipo de Processo' }
+        }
+      }
+    });
+  }
+
+  showPage('cadastros');
 });
