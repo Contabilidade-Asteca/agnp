@@ -1,0 +1,10 @@
+{
+  "nextIds": { "professional": 3, "client": 1, "procedure": 1, "receipt": 1 },
+  "professionals": [
+    { "id": 1, "nome": "Dra.Agnes Opuchkevitch", "crm": "XXXXX" },
+    { "id": 2, "nome": "Dra.Neisy Stefli", "crm": "XXXXX" }
+  ],
+  "clients": [],
+  "procedures": [],
+  "receipts": []
+}

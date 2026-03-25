@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema Clínica AGNP</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="title">Clínica AGNP</div>
+    <nav>
+      <button id="nav-profissionais">Profissionais</button>
+      <button id="nav-clientes">Clientes</button>
+      <button id="nav-procedimentos">Procedimentos</button>
+      <button id="nav-recibos">Recibos</button>
+      <button id="nav-resumo">Resumo</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Profissionais Page -->
+    <section id="page-profissionais" class="page">
+      <h2>Cadastro de Profissionais</h2>
+      <div class="form-container">
+        <input type="hidden" id="prof-id">
+        <input type="text" id="prof-nome" placeholder="Nome">
+        <input type="text" id="prof-crm" placeholder="CRM">
+        <button id="prof-salvar">Salvar</button>
+      </div>
+      <table id="table-profissionais">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>CRM</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Clientes Page -->
+    <section id="page-clientes" class="page">
+      <h2>Cadastro de Clientes</h2>
+      <div class="form-container">
+        <input type="hidden" id="cli-id">
+        <input type="text" id="cli-nome" placeholder="Nome">
+        <input type="text" id="cli-cpf" placeholder="CPF">
+        <input type="text" id="cli-telefone" placeholder="Telefone">
+        <input type="date" id="cli-nascimento">
+        <button id="cli-salvar">Salvar</button>
+      </div>
+      <table id="table-clientes">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>Telefone</th>
+            <th>Data Nasc.</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Procedimentos Page -->
+    <section id="page-procedimentos" class="page">
+      <h2>Registro de Procedimento</h2>
+      <div class="form-container">
+        <select id="proc-tipo">
+          <option value="MAQUINA">MAQUINA</option>
+          <option value="NEISY">NEISY</option>
+        </select>
+        <select id="proc-cliente">
+          <!-- filled dynamically -->
+        </select>
+        <select id="proc-profissional">
+          <!-- filled dynamically -->
+        </select>
+        <input type="text" id="proc-nome" placeholder="Procedimento">
+        <input type="number" id="proc-valor" placeholder="Valor">
+        <button id="proc-salvar">Registrar</button>
+      </div>
+      <table id="table-procedimentos">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tipo</th>
+            <th>Cliente</th>
+            <th>Procedimento</th>
+            <th>Valor</th>
+            <th>Agnes</th>
+            <th>Neisy</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Recibos Page -->
+    <section id="page-recibos" class="page">
+      <h2>Emissão de Recibos</h2>
+      <table id="table-recibos">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Procedimento</th>
+            <th>Cliente</th>
+            <th>Profissional</th>
+            <th>Valor</th>
+            <th>Parcela</th>
+            <th>Status</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Resumo Page -->
+    <section id="page-resumo" class="page">
+      <h2>Resumo de Receitas do Mês</h2>
+      <div class="resumo-container">
+        <p>Total Geral: <span id="resumo-total">0</span></p>
+        <ul id="resumo-lista">
+          <!-- incomes per professional -->
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
